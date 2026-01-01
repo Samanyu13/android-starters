@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Fragment Handler 2</string>
+    <string name="goto_3rd_fragment">Goto 3rd Fragment</string>
+    <string name="goto_2nd_fragment">Goto 2nd Fragment</string>
+</resources>
