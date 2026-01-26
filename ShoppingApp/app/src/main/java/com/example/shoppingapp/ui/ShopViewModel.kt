@@ -2,6 +2,7 @@ package com.example.shoppingapp.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.payment_sdk.PaymentResult
 import com.example.shoppingapp.data.local.CartItem
 import com.example.shoppingapp.data.local.OrderHistory
 import com.example.shoppingapp.data.repo.ShopRepository
@@ -78,14 +79,28 @@ class ShopViewModel @Inject constructor(
         }
     }
 
-    fun onPaymentSuccess(orderId: String, amount: Double) {
+    fun onPaymentSuccess(paymentResult: PaymentResult.Success, amount: Double) {
         viewModelScope.launch {
+            val summary = cartItems.value.joinToString(separator = ", ")
             val historyEntry = OrderHistory(
-                orderId = orderId,
-                totalAmount = amount
+                totalAmount = amount,
+                summary = summary,
+                transactionId = paymentResult.transactionId
             )
             repository.saveOrder(historyEntry)
             repository.clearCart()
+        }
+    }
+
+    fun removeOrder(orderHistory: OrderHistory) {
+        viewModelScope.launch {
+            repository.removeOrder(orderHistory)
+        }
+    }
+
+    fun clearOrderHistory() {
+        viewModelScope.launch {
+            repository.clearOrderHistory()
         }
     }
 }

@@ -11,4 +11,6 @@ interface ShopRepository {
     suspend fun removeFromCart(item: CartItem)
     suspend fun clearCart()
     suspend fun saveOrder(order: OrderHistory)
+    suspend fun removeOrder(order: OrderHistory)
+    suspend fun clearOrderHistory()
 }

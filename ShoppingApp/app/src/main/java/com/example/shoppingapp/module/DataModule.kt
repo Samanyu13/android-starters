@@ -32,7 +32,6 @@ object DataModule {
     @Provides
     @Singleton
     fun provideRepository(dao: ShopDao): ShopRepository {
-        // Here we link the Interface to the Implementation
         return ShopRepositoryImpl(dao)
     }
 }

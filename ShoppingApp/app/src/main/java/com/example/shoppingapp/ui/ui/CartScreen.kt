@@ -1,10 +1,14 @@
 package com.example.shoppingapp.ui.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -15,12 +19,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -31,12 +39,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.material3.Card
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.CardDefaults
-import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.shoppingapp.data.local.CartItem
 import com.example.shoppingapp.ui.ShopViewModel
@@ -45,7 +52,7 @@ import com.example.shoppingapp.ui.ShopViewModel
 @Composable
 fun CartScreen(
     viewModel: ShopViewModel = hiltViewModel(),
-    onPaymentSuccess: () -> Unit
+    onProceedForPayment: (Double) -> Unit
 ) {
     val items by viewModel.cartItems.collectAsState()
     val total by viewModel.totalAmount.collectAsState()
@@ -87,14 +94,15 @@ fun CartScreen(
         ) {
             if (items.isEmpty()) {
                 // Empty State UI
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🛒", fontSize = 64.sp)
-                        Text("Your cart is empty", style = MaterialTheme.typography.bodyLarge)
-                    }
-                }
+                EmptyCartView()
             } else {
-                CartListContent(Modifier.weight(1f), viewModel, items, total, onPaymentSuccess)
+                CartListContent(
+                    modifier = Modifier.weight(1f),
+                    viewModel = viewModel,
+                    items = items,
+                    total = total,
+                    onProceedForPayment = { onProceedForPayment(total) }
+                )
             }
         }
     }
@@ -127,37 +135,66 @@ fun CartListContent(
     viewModel: ShopViewModel,
     items: List<CartItem>,
     total: Double,
-    onPaymentSuccess: () -> Unit
+    onProceedForPayment: (Double) -> Unit
 ) {
+    var isProcessing by remember { mutableStateOf(false) }
 
-    var showPaymentSheet by remember { mutableStateOf(false) }
-    LazyColumn(modifier = modifier) {
-        items(items, key = { it.id }) { item ->
-            CartItemRow(
-                item = item,
-                onIncrement = { viewModel.updateQuantity(item.id, true) },
-                onDecrement = { viewModel.updateQuantity(item.id, false) }
-            )
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp)
+            ) {
+                items(items, key = { it.id }) { item ->
+                    CartItemRow(
+                        item = item,
+                        onIncrement = { viewModel.updateQuantity(item.id, true) },
+                        onDecrement = { viewModel.updateQuantity(item.id, false) }
+                    )
+                }
+            }
+
+            if (items.isNotEmpty()) {
+                Surface(
+                    tonalElevation = 8.dp,
+                    shadowElevation = 8.dp
+                ) {
+                    Button(
+                        onClick = { onProceedForPayment(total) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !isProcessing
+                    ) {
+                        Text(
+                            text = "Buy Now ($${"%.2f".format(total)})",
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+            }
+        }
+
+        if (isProcessing) {
+            PaymentProcessingOverlay()
         }
     }
+}
 
-    if (items.isNotEmpty()) {
-        Button(
-            onClick = { showPaymentSheet = true },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Buy Now ($${"%.2f".format(total)})") }
+@Composable
+fun EmptyCartView() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("🛒", fontSize = 64.sp)
+            Text("Your cart is empty", style = MaterialTheme.typography.bodyLarge)
+        }
     }
-
-//        if (showPaymentSheet) {
-//            // PLUG AND PLAY SDK CALL
-//            PaymentSDK.RequestPayment(total, "ORDER_${System.currentTimeMillis()}") { result ->
-//                showPaymentSheet = false
-//                if (result is PaymentResult.Success) {
-//                    viewModel.onPaymentSuccess(result.transactionId, total)
-//                    onPaymentSuccess()
-//                }
-//            }
-//        }
 }
 
 @Composable
@@ -204,6 +241,27 @@ fun CartItemRow(
                     onDecrement = onDecrement
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun PaymentProcessingOverlay() {
+    Surface(
+        color = Color.Black.copy(alpha = 0.5f),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "Verifying Transaction...",
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium
+            )
         }
     }
 }

@@ -24,4 +24,12 @@ class ShopRepositoryImpl(private val dao: ShopDao) : ShopRepository {
     override suspend fun saveOrder(order: OrderHistory) {
         dao.saveOrder(order)
     }
+
+    override suspend fun removeOrder(order: OrderHistory) {
+        dao.removeOrder(order)
+    }
+
+    override suspend fun clearOrderHistory() {
+        dao.clearOrderHistory()
+    }
 }

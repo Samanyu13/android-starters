@@ -41,7 +41,7 @@ fun MainShoppingApp(viewModel: ShopViewModel = hiltViewModel()) {
                     icon = { Icon(Icons.Default.Storefront, "Shop") },
                     label = { Text("Shop") })
 
-                // Tab 2: Cart with Reactive Badge
+                // Tab 2: Cart
                 NavigationBarItem(
                     selected = currentRoute == "cart",
                     onClick = { navController.navigate("cart") },
@@ -67,9 +67,19 @@ fun MainShoppingApp(viewModel: ShopViewModel = hiltViewModel()) {
         ) {
             composable("products") { ProductListScreen() }
             composable("cart") {
-                CartScreen(onPaymentSuccess = { navController.navigate("history") })
+                CartScreen(onProceedForPayment = { amount ->
+                    navController.navigate("payment_selection/$amount")
+                })
             }
             composable("history") { HistoryScreen() }
+            composable("payment_selection/{total}") { backStackEntry ->
+                val total = backStackEntry.arguments?.getString("total")?.toDouble() ?: 0.0
+                PaymentSelectionScreen(
+                    total = total,
+                    onPaymentSuccess = { navController.navigate("history") },
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }

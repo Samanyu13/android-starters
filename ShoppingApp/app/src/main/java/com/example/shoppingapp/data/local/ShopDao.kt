@@ -12,11 +12,14 @@ interface ShopDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun addToCart(item: CartItem)
 
-    @Delete()
+    @Delete
     suspend fun removeFromCart(item: CartItem)
 
     @Insert
     suspend fun saveOrder(order: OrderHistory)
+
+    @Delete
+    suspend fun removeOrder(order: OrderHistory)
 
     @Query("DELETE from cart_items")
     suspend fun clearCart()
@@ -26,4 +29,7 @@ interface ShopDao {
 
     @Query("SELECT * FROM order_history ORDER BY timeStamp DESC")
     fun getHistory(): Flow<List<OrderHistory>>
+
+    @Query("DELETE FROM order_history")
+    suspend fun clearOrderHistory()
 }
