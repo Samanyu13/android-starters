@@ -28,8 +28,10 @@ Thumbs.db
 *.log
 
 # Sensitive info (Firebase config)
-# Uncomment the line below if you want to keep your Firebase config private
-# google-services.json
+google-services.json
+
+# Gradle wrapper folder
+/gradle/
 
 # Signing files
 *.jks
